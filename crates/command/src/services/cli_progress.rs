@@ -75,6 +75,25 @@ impl<T: ICommandInfo + 'static> CliProgress<T> {
         drop(handle_guard);
         self.bar.finish();
     }
+
+    /// Hide the progress bar output.
+    #[cfg(test)]
+    pub fn hide(&self) {
+        self.bar
+            .set_draw_target(indicatif::ProgressDrawTarget::hidden());
+    }
+
+    /// Progress bar position (completed items).
+    #[cfg(test)]
+    pub fn position(&self) -> u64 {
+        self.bar.position()
+    }
+
+    /// Progress bar total length (queued items).
+    #[cfg(test)]
+    pub fn length(&self) -> Option<u64> {
+        self.bar.length()
+    }
 }
 
 impl<T: ICommandInfo + 'static> Service for CliProgress<T> {
@@ -82,5 +101,62 @@ impl<T: ICommandInfo + 'static> Service for CliProgress<T> {
 
     async fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
         Ok(Self::new(services.get_service().await?))
+    }
+}
+
+#[cfg(all(test, feature = "server"))]
+mod tests {
+    #![expect(
+        clippy::as_conversions,
+        reason = "usize to u64 cast in test assertions"
+    )]
+    use super::*;
+
+    const COMMAND_COUNT: usize = CHANNEL_CAPACITY * 2;
+    const WORKER_COUNT: usize = 4;
+    const DELAY_MS: u64 = 1;
+
+    #[tokio::test]
+    async fn cli_progress_receives_all_events() {
+        // Arrange
+        let services = ServiceProvider::new()
+            .with_commands()
+            .await
+            .expect("should be able to create services with commands");
+        let runner = services
+            .get_service::<CommandRunner<CommandInfo>>()
+            .await
+            .expect("should be able to get runner");
+        let progress = services
+            .get_service::<CliProgress<CommandInfo>>()
+            .await
+            .expect("should be able to get progress");
+        let _logger = init_test_logger();
+        progress.hide();
+
+        // Act
+        progress.start().await;
+        runner.start(WORKER_COUNT).await;
+        for i in 1..=COMMAND_COUNT {
+            let request = DelayRequest::new(format!("P{i}"), DELAY_MS);
+            runner
+                .queue_request(request)
+                .await
+                .expect("should be able to queue request");
+        }
+        runner.drain().await;
+        progress.finish().await;
+
+        // Assert
+        assert_eq!(
+            progress.length(),
+            Some(COMMAND_COUNT as u64),
+            "progress bar total should match queued commands"
+        );
+        assert_eq!(
+            progress.position(),
+            COMMAND_COUNT as u64,
+            "progress bar position should match completed commands"
+        );
     }
 }

@@ -1,7 +1,13 @@
 use crate::prelude::*;
 use tokio::sync::broadcast::{Receiver, Sender, channel};
 
-const CHANNEL_CAPACITY: usize = 16;
+/// Broadcast channel buffer size for command events.
+///
+/// - Must be large enough that subscribers don't lag behind when many
+///   commands are queued in quick succession
+/// - Too small and receivers get `RecvError::Lagged`, missing events
+/// - Memory cost is negligible as each slot holds a small event enum
+pub(crate) const CHANNEL_CAPACITY: usize = 1024;
 
 /// A mediator between the [`CommandRunner`], [`Worker`] and [`CliProgress`] services.
 pub struct CommandMediator<T: ICommandInfo> {
