@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use indicatif::ProgressBar;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::spawn;
 use tokio::sync::broadcast::error::RecvError;
 use tracing::{error, warn};
@@ -9,7 +10,7 @@ pub struct CliProgress<T: ICommandInfo> {
     mediator: Arc<CommandMediator<T>>,
     bar: Arc<ProgressBar>,
     handle: Mutex<Option<JoinHandle<()>>>,
-    finished: Arc<Mutex<bool>>,
+    finished: Arc<AtomicBool>,
 }
 
 impl<T: ICommandInfo + 'static> CliProgress<T> {
@@ -20,7 +21,7 @@ impl<T: ICommandInfo + 'static> CliProgress<T> {
             mediator,
             bar: Arc::new(ProgressBar::new(0)),
             handle: Mutex::default(),
-            finished: Arc::new(Mutex::new(false)),
+            finished: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -36,26 +37,15 @@ impl<T: ICommandInfo + 'static> CliProgress<T> {
         let finished = self.finished.clone();
         let mut total: u64 = 0;
         let handle = spawn(async move {
-            while !*finished.lock().await {
-                let event = match receiver.recv().await {
+            while !finished.load(Ordering::Acquire) {
+                match receiver.recv().await {
+                    Ok(event) => Self::handle_event(&bar, &mut total, event),
                     Err(RecvError::Lagged(count)) => {
                         warn!("CLI Progress missed {count} events due to lagging");
-                        continue;
                     }
                     Err(RecvError::Closed) => {
                         error!("Event pipe was closed. CLI Progress can't proceed.");
                         break;
-                    }
-                    Ok(event) => event,
-                };
-                match event.get_kind() {
-                    EventKind::Queued => {
-                        total += 1;
-                        bar.set_length(total);
-                    }
-                    EventKind::Executing => {}
-                    EventKind::Succeeded | EventKind::Failed => {
-                        bar.inc(1);
                     }
                 }
             }
@@ -63,11 +53,22 @@ impl<T: ICommandInfo + 'static> CliProgress<T> {
         *handle_guard = Some(handle);
     }
 
-    /// Stop listening and mark the progress bar as finished.
+    fn handle_event(bar: &ProgressBar, total: &mut u64, event: T::Event) {
+        match event.get_kind() {
+            EventKind::Queued => {
+                *total += 1;
+                bar.set_length(*total);
+            }
+            EventKind::Executing => {}
+            EventKind::Succeeded | EventKind::Failed => {
+                bar.inc(1);
+            }
+        }
+    }
+
+    /// Signal completion and abort the listener task.
     pub async fn finish(&self) {
-        let mut finished_guard = self.finished.lock().await;
-        *finished_guard = true;
-        drop(finished_guard);
+        self.finished.store(true, Ordering::Release);
         let mut handle_guard = self.handle.lock().await;
         if let Some(handle) = handle_guard.take() {
             handle.abort();
