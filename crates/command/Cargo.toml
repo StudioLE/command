@@ -1,0 +1,35 @@
+[package]
+name = "studiole-command"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A simple command execution framework with event subscription and progress tracking."
+
+[features]
+default = ["server"]
+server = [
+  "dep:indicatif",
+  "dep:studiole-di",
+  "dep:tokio",
+]
+
+[dependencies]
+async-trait = { workspace = true }
+studiole-report = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+# Server dependencies
+indicatif = { workspace = true, optional = true }
+studiole-di = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["sync", "time"] }
+
+[dev-dependencies]
+tokio = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true
