@@ -13,12 +13,12 @@ repository = "https://github.com/StudioLE/command"
 
 [workspace.dependencies]
 async-trait = { version = "0.1.89" }
-studiole-di = { version = "0.2.0" }
-studiole-report = { version = "0.1.0" }
 indicatif = { version = "0.18.4" }
 serde = { version = "1.0.228", features = ["derive"] }
+studiole-di = { version = "0.*" }
+studiole-report = { version = "0.*" }
 thiserror = { version = "2.0.18"}
-tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread"] }
 tracing = { version = "0.1.44" }
 # v0.3.20 breaks ANSI colors in the terminal
 tracing-subscriber = { version = "=0.3.19" }

@@ -226,9 +226,9 @@ dependencies = [
 
 [[package]]
 name = "studiole-di"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f45d36359482b651eb6ec395739291130d5effe05431f9b4eec0de367a2b170e"
+checksum = "75cc73eaddf7177a6e85787f88e1cf0a4354ec6ae721125328c9460f2e1fa375"
 dependencies = [
  "studiole-di-macros",
  "studiole-report",
@@ -238,9 +238,9 @@ dependencies = [
 
 [[package]]
 name = "studiole-di-macros"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5934a20ac38f04e4ddb9373ca5f221b30d65a748828874163126dca8bfd528e0"
+checksum = "84faaf44357055321011d4401c1af69edac0ae8a31023c0234fa116e5a1885d5"
 dependencies = [
  "quote",
  "syn",
@@ -248,9 +248,9 @@ dependencies = [
 
 [[package]]
 name = "studiole-report"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e645ffd092425ac6e8a26c2bac167feac3b409cd4b551ae9939993849fceadac"
+checksum = "2fb0191f75a73b371557b4c1bec4c9b4f2ebe79c0bae178e085057349851a450"
 dependencies = [
  "miette",
 ]
