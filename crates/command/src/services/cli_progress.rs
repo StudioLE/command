@@ -97,11 +97,11 @@ impl<T: ICommandInfo + 'static> CliProgress<T> {
     }
 }
 
-impl<T: ICommandInfo + 'static> Service for CliProgress<T> {
-    type Error = ServiceError;
+impl<T: ICommandInfo + 'static> FromServices for CliProgress<T> {
+    type Error = ResolveError;
 
-    async fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
-        Ok(Self::new(services.get_service().await?))
+    fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
+        Ok(Self::new(services.get::<CommandMediator<T>>()?))
     }
 }
 
@@ -120,17 +120,13 @@ mod tests {
     #[tokio::test]
     async fn cli_progress_receives_all_events() {
         // Arrange
-        let services = ServiceProvider::new()
-            .with_commands()
-            .await
-            .expect("should be able to create services with commands");
+        let services = ServiceBuilder::new().with_commands().build();
         let runner = services
-            .get_service::<CommandRunner<CommandInfo>>()
+            .get_async::<CommandRunner<CommandInfo>>()
             .await
             .expect("should be able to get runner");
         let progress = services
-            .get_service::<CliProgress<CommandInfo>>()
-            .await
+            .get::<CliProgress<CommandInfo>>()
             .expect("should be able to get progress");
         let _logger = init_test_logger();
         progress.hide();

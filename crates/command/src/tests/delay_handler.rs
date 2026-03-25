@@ -5,10 +5,10 @@ use tokio::time::sleep;
 #[derive(Debug)]
 pub struct DelayHandler;
 
-impl Service for DelayHandler {
+impl FromServicesAsync for DelayHandler {
     type Error = Infallible;
 
-    async fn from_services(_services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
+    async fn from_services_async(_services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
         Ok(Self)
     }
 }

@@ -70,18 +70,35 @@ macro_rules! define_commands_server {
             }
         )*
 
-        pub trait WithCommands: Sized {
-            fn with_commands(self) -> impl Future<Output = Result<Self, Report<ServiceError>>> + Send;
-        }
-
-        impl WithCommands for ServiceProvider {
-            async fn with_commands(self) -> Result<Self, Report<ServiceError>> {
-                let mut registry: CommandRegistry<CommandInfo> = CommandRegistry::new();
+        impl RegisterHandlers for CommandInfo {
+            async fn register_handlers(
+                services: &ServiceProvider,
+            ) -> Result<CommandRegistry<Self>, Report<ResolveError>> {
+                let mut registry = CommandRegistry::new();
                 $(
-                    let handler = self.get_service::<$handler>().await?;
+                    let handler = services.get_async::<$handler>().await?;
                     registry.register::<$req, $handler>(handler);
                 )*
-                Ok(self.with_instance(registry))
+                Ok(registry)
+            }
+        }
+
+        pub trait WithCommands: Sized {
+            fn with_commands(self) -> Self;
+        }
+
+        impl WithCommands for ServiceBuilder {
+            fn with_commands(self) -> Self {
+                self
+                    $(
+                        .with_type_async::<$handler>()
+                    )*
+                    .with_type_async::<CommandRegistry<CommandInfo>>()
+                    .with_type_async::<CommandRunner<CommandInfo>>()
+                    .with_type::<CommandMediator<CommandInfo>>()
+                    .with_type::<WorkerPool<CommandInfo>>()
+                    .with_type::<CommandEvents<CommandInfo>>()
+                    .with_type::<CliProgress<CommandInfo>>()
             }
         }
     };

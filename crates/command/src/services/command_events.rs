@@ -107,10 +107,10 @@ impl CommandEventCounts {
     }
 }
 
-impl<T: ICommandInfo + 'static> Service for CommandEvents<T> {
-    type Error = ServiceError;
+impl<T: ICommandInfo + 'static> FromServices for CommandEvents<T> {
+    type Error = ResolveError;
 
-    async fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
-        Ok(Self::new(services.get_service().await?))
+    fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
+        Ok(Self::new(services.get::<CommandMediator<T>>()?))
     }
 }

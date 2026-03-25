@@ -24,14 +24,14 @@ pub struct CommandRunner<T: ICommandInfo> {
     workers: Arc<WorkerPool<T>>,
 }
 
-impl<T: ICommandInfo + 'static> Service for CommandRunner<T> {
-    type Error = ServiceError;
+impl<T: ICommandInfo + 'static> FromServicesAsync for CommandRunner<T> {
+    type Error = ResolveError;
 
-    async fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
+    async fn from_services_async(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
         Ok(Self::new(
-            services.get_service().await?,
-            services.get_service().await?,
-            services.get_service().await?,
+            services.get::<CommandMediator<T>>()?,
+            services.get_async::<CommandRegistry<T>>().await?,
+            services.get::<WorkerPool<T>>()?,
         ))
     }
 }
@@ -114,17 +114,13 @@ mod tests {
     #[tokio::test]
     async fn command_runner() {
         // Arrange
-        let services = ServiceProvider::new()
-            .with_commands()
-            .await
-            .expect("should be able to create services with commands");
+        let services = ServiceBuilder::new().with_commands().build();
         let runner = services
-            .get_service::<CommandRunner<CommandInfo>>()
+            .get_async::<CommandRunner<CommandInfo>>()
             .await
             .expect("should be able to get runner");
         let events = services
-            .get_service::<CommandEvents<CommandInfo>>()
-            .await
+            .get::<CommandEvents<CommandInfo>>()
             .expect("should be able to get events");
         events.start().await;
         let _logger = init_test_logger();

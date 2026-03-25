@@ -23,10 +23,10 @@ pub struct CommandMediator<T: ICommandInfo> {
     runner_status: Mutex<RunnerStatus>,
 }
 
-impl<T: ICommandInfo + 'static> Service for CommandMediator<T> {
+impl<T: ICommandInfo + 'static> FromServices for CommandMediator<T> {
     type Error = Infallible;
 
-    async fn from_services(_services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
+    fn from_services(_services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
         Ok(Self::new())
     }
 }
