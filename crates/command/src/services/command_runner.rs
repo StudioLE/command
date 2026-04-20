@@ -101,9 +101,9 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
     /// - Entries still `Queued` or `Executing` are left in the map
     pub async fn take_completed<R>(&self) -> Vec<(R, Result<R::Response, R::ExecutionError>)>
     where
-        R: Executable + TryFrom<T::Request, Error = T::Request>,
-        R::Response: TryFrom<T::Success, Error = T::Success>,
-        R::ExecutionError: TryFrom<T::Failure, Error = T::Failure>,
+        R: Executable + TryFrom<T::Request>,
+        R::Response: TryFrom<T::Success>,
+        R::ExecutionError: TryFrom<T::Failure>,
     {
         let mut commands = self.mediator.get_commands().await;
         let keys: Vec<T::Request> = commands
@@ -122,11 +122,15 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
             let Some(status) = commands.remove(&key) else {
                 unreachable!("already filtered to existing key");
             };
-            let request = R::try_from(key).expect("already filtered to matching variant");
+            let request = R::try_from(key)
+                .ok()
+                .expect("already filtered to matching variant");
             let result = match status {
                 CommandStatus::Succeeded(success) => Ok(R::Response::try_from(success)
+                    .ok()
                     .expect("request variant should match success variant")),
                 CommandStatus::Failed(failure) => Err(R::ExecutionError::try_from(failure)
+                    .ok()
                     .expect("request variant should match failure variant")),
                 _ => unreachable!("filtered to completed only"),
             };
@@ -141,8 +145,8 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
     /// - `Failed`, `Queued`, and `Executing` entries are left in the map
     pub async fn take_succeeded<R>(&self) -> Vec<(R, R::Response)>
     where
-        R: Executable + TryFrom<T::Request, Error = T::Request>,
-        R::Response: TryFrom<T::Success, Error = T::Success>,
+        R: Executable + TryFrom<T::Request>,
+        R::Response: TryFrom<T::Success>,
     {
         let mut commands = self.mediator.get_commands().await;
         let keys: Vec<T::Request> = commands
@@ -157,8 +161,11 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
             let Some(CommandStatus::Succeeded(success)) = commands.remove(&key) else {
                 unreachable!("already filtered to succeeded");
             };
-            let request = R::try_from(key).expect("already filtered to matching variant");
+            let request = R::try_from(key)
+                .ok()
+                .expect("already filtered to matching variant");
             let response = R::Response::try_from(success)
+                .ok()
                 .expect("request variant should match success variant");
             results.push((request, response));
         }
@@ -171,8 +178,8 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
     /// - `Succeeded`, `Queued`, and `Executing` entries are left in the map
     pub async fn take_failed<R>(&self) -> Vec<(R, R::ExecutionError)>
     where
-        R: Executable + TryFrom<T::Request, Error = T::Request>,
-        R::ExecutionError: TryFrom<T::Failure, Error = T::Failure>,
+        R: Executable + TryFrom<T::Request>,
+        R::ExecutionError: TryFrom<T::Failure>,
     {
         let mut commands = self.mediator.get_commands().await;
         let keys: Vec<T::Request> = commands
@@ -187,8 +194,11 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
             let Some(CommandStatus::Failed(failure)) = commands.remove(&key) else {
                 unreachable!("already filtered to failed");
             };
-            let request = R::try_from(key).expect("already filtered to matching variant");
+            let request = R::try_from(key)
+                .ok()
+                .expect("already filtered to matching variant");
             let error = R::ExecutionError::try_from(failure)
+                .ok()
                 .expect("request variant should match failure variant");
             results.push((request, error));
         }
