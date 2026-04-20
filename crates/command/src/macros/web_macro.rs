@@ -75,10 +75,48 @@ macro_rules! define_commands_web {
             type Failure = CommandFailure;
             type Event = CommandEvent;
         }
+
+        $(
+            #[allow(irrefutable_let_patterns, unreachable_patterns, clippy::infallible_try_from)]
+            impl TryFrom<CommandRequest> for $req {
+                type Error = CommandRequest;
+                fn try_from(value: CommandRequest) -> Result<Self, Self::Error> {
+                    match value {
+                        CommandRequest::$kind(r) => Ok(r),
+                        other => Err(other),
+                    }
+                }
+            }
+
+            #[allow(irrefutable_let_patterns, unreachable_patterns, clippy::infallible_try_from)]
+            impl TryFrom<CommandSuccess> for <$req as Executable>::Response {
+                type Error = CommandSuccess;
+                fn try_from(value: CommandSuccess) -> Result<Self, Self::Error> {
+                    match value {
+                        CommandSuccess::$kind(r) => Ok(r),
+                        other => Err(other),
+                    }
+                }
+            }
+
+            #[allow(irrefutable_let_patterns, unreachable_patterns, clippy::infallible_try_from)]
+            impl TryFrom<CommandFailure> for <$req as Executable>::ExecutionError {
+                type Error = CommandFailure;
+                fn try_from(value: CommandFailure) -> Result<Self, Self::Error> {
+                    match value {
+                        CommandFailure::$kind(e) => Ok(e),
+                        other => Err(other),
+                    }
+                }
+            }
+        )*
     };
 }
 
 /// Marker trait for serializable command request enums.
+///
+/// - Requests are keyed by their `Hash` in the [`CommandMediator`].
+/// - If duplicate requests should be tracked independently, include a unique identifier.
 pub trait IRequest:
     Clone + Debug + DeserializeOwned + Eq + Hash + PartialEq + Send + Serialize + Sync
 {

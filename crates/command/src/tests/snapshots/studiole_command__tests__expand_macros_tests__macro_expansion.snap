@@ -873,6 +873,36 @@ mod expand_macros {
         type Failure = CommandFailure;
         type Event = CommandEvent;
     }
+    #[allow(irrefutable_let_patterns, unreachable_patterns, clippy::infallible_try_from)]
+    impl TryFrom<CommandRequest> for DelayRequest {
+        type Error = CommandRequest;
+        fn try_from(value: CommandRequest) -> Result<Self, Self::Error> {
+            match value {
+                CommandRequest::Delay(r) => Ok(r),
+                other => Err(other),
+            }
+        }
+    }
+    #[allow(irrefutable_let_patterns, unreachable_patterns, clippy::infallible_try_from)]
+    impl TryFrom<CommandSuccess> for <DelayRequest as Executable>::Response {
+        type Error = CommandSuccess;
+        fn try_from(value: CommandSuccess) -> Result<Self, Self::Error> {
+            match value {
+                CommandSuccess::Delay(r) => Ok(r),
+                other => Err(other),
+            }
+        }
+    }
+    #[allow(irrefutable_let_patterns, unreachable_patterns, clippy::infallible_try_from)]
+    impl TryFrom<CommandFailure> for <DelayRequest as Executable>::ExecutionError {
+        type Error = CommandFailure;
+        fn try_from(value: CommandFailure) -> Result<Self, Self::Error> {
+            match value {
+                CommandFailure::Delay(e) => Ok(e),
+                other => Err(other),
+            }
+        }
+    }
     pub enum CommandHandler {
         Delay(Arc<DelayHandler>),
     }

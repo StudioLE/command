@@ -44,6 +44,36 @@ async fn command_execute() {
     assert!(matches!(response, Ok(CommandSuccess::Delay(()))));
 }
 
+#[tokio::test]
+async fn take_completed() {
+    // Arrange
+    let services = ServiceBuilder::new().with_commands().build();
+    let runner = services
+        .get_async::<CommandRunner<CommandInfo>>()
+        .await
+        .expect("should be able to get runner");
+    let _logger = init_test_logger();
+    runner
+        .queue_request(DelayRequest::new("A".to_owned(), 10))
+        .await
+        .expect("should be able to queue request");
+    runner
+        .queue_request(DelayRequest::new("B".to_owned(), 10))
+        .await
+        .expect("should be able to queue request");
+    runner.start(2).await;
+    runner.drain().await;
+
+    // Act
+    let results = runner.take_completed::<DelayRequest>().await;
+
+    // Assert
+    assert_eq!(results.len(), 2);
+    for (_request, result) in &results {
+        assert!(result.is_ok());
+    }
+}
+
 #[test]
 fn macro_expansion() {
     // Act

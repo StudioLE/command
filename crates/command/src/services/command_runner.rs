@@ -94,6 +94,106 @@ impl<T: ICommandInfo + 'static> CommandRunner<T> {
     pub async fn get_commands(&self) -> MutexGuard<'_, HashMap<T::Request, CommandStatus<T>>> {
         self.mediator.get_commands().await
     }
+
+    /// Take completed results for a specific request type.
+    ///
+    /// - Removes matching completed entries from the command map
+    /// - Entries still `Queued` or `Executing` are left in the map
+    pub async fn take_completed<R>(&self) -> Vec<(R, Result<R::Response, R::ExecutionError>)>
+    where
+        R: Executable + TryFrom<T::Request, Error = T::Request>,
+        R::Response: TryFrom<T::Success, Error = T::Success>,
+        R::ExecutionError: TryFrom<T::Failure, Error = T::Failure>,
+    {
+        let mut commands = self.mediator.get_commands().await;
+        let keys: Vec<T::Request> = commands
+            .iter()
+            .filter(|(k, status)| {
+                R::try_from((*k).clone()).is_ok()
+                    && matches!(
+                        status,
+                        CommandStatus::Succeeded(_) | CommandStatus::Failed(_)
+                    )
+            })
+            .map(|(k, _)| k.clone())
+            .collect();
+        let mut results = Vec::with_capacity(keys.len());
+        for key in keys {
+            let Some(status) = commands.remove(&key) else {
+                unreachable!("already filtered to existing key");
+            };
+            let request = R::try_from(key).expect("already filtered to matching variant");
+            let result = match status {
+                CommandStatus::Succeeded(success) => Ok(R::Response::try_from(success)
+                    .expect("request variant should match success variant")),
+                CommandStatus::Failed(failure) => Err(R::ExecutionError::try_from(failure)
+                    .expect("request variant should match failure variant")),
+                _ => unreachable!("filtered to completed only"),
+            };
+            results.push((request, result));
+        }
+        results
+    }
+
+    /// Take succeeded results for a specific request type.
+    ///
+    /// - Removes matching succeeded entries from the command map
+    /// - `Failed`, `Queued`, and `Executing` entries are left in the map
+    pub async fn take_succeeded<R>(&self) -> Vec<(R, R::Response)>
+    where
+        R: Executable + TryFrom<T::Request, Error = T::Request>,
+        R::Response: TryFrom<T::Success, Error = T::Success>,
+    {
+        let mut commands = self.mediator.get_commands().await;
+        let keys: Vec<T::Request> = commands
+            .iter()
+            .filter(|(k, status)| {
+                R::try_from((*k).clone()).is_ok() && matches!(status, CommandStatus::Succeeded(_))
+            })
+            .map(|(k, _)| k.clone())
+            .collect();
+        let mut results = Vec::with_capacity(keys.len());
+        for key in keys {
+            let Some(CommandStatus::Succeeded(success)) = commands.remove(&key) else {
+                unreachable!("already filtered to succeeded");
+            };
+            let request = R::try_from(key).expect("already filtered to matching variant");
+            let response = R::Response::try_from(success)
+                .expect("request variant should match success variant");
+            results.push((request, response));
+        }
+        results
+    }
+
+    /// Take failed results for a specific request type.
+    ///
+    /// - Removes matching failed entries from the command map
+    /// - `Succeeded`, `Queued`, and `Executing` entries are left in the map
+    pub async fn take_failed<R>(&self) -> Vec<(R, R::ExecutionError)>
+    where
+        R: Executable + TryFrom<T::Request, Error = T::Request>,
+        R::ExecutionError: TryFrom<T::Failure, Error = T::Failure>,
+    {
+        let mut commands = self.mediator.get_commands().await;
+        let keys: Vec<T::Request> = commands
+            .iter()
+            .filter(|(k, status)| {
+                R::try_from((*k).clone()).is_ok() && matches!(status, CommandStatus::Failed(_))
+            })
+            .map(|(k, _)| k.clone())
+            .collect();
+        let mut results = Vec::with_capacity(keys.len());
+        for key in keys {
+            let Some(CommandStatus::Failed(failure)) = commands.remove(&key) else {
+                unreachable!("already filtered to failed");
+            };
+            let request = R::try_from(key).expect("already filtered to matching variant");
+            let error = R::ExecutionError::try_from(failure)
+                .expect("request variant should match failure variant");
+            results.push((request, error));
+        }
+        results
+    }
 }
 
 #[cfg(all(test, feature = "server"))]
