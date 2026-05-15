@@ -1,6 +1,7 @@
 //! Server-only imports re-exported for convenience.
 pub use crate::define_commands_server;
 pub use crate::services::*;
+pub use indicatif::MultiProgress;
 
 #[allow(
     unused_imports,

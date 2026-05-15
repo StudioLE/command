@@ -14,12 +14,17 @@ pub struct CliProgress<T: ICommandInfo> {
 }
 
 impl<T: ICommandInfo + 'static> CliProgress<T> {
-    /// Create a new [`CliProgress`] backed by a [`CommandMediator`].
+    /// Create a new [`CliProgress`] whose progress bar is attached to a shared
+    /// [`MultiProgress`].
+    ///
+    /// - Bars added via `multi.add(...)` redraw cooperatively with each other
+    /// - Pair with [`ProgressWriterFactory`] passed to `LoggerBuilder::with_writer`
+    ///   to prevent collisions with `tracing` log output
     #[must_use]
-    pub fn new(mediator: Arc<CommandMediator<T>>) -> Self {
+    pub fn new(mediator: Arc<CommandMediator<T>>, multi: MultiProgress) -> Self {
         Self {
             mediator,
-            bar: Arc::new(ProgressBar::new(0)),
+            bar: Arc::new(multi.add(ProgressBar::new(0))),
             handle: Mutex::default(),
             finished: Arc::new(AtomicBool::new(false)),
         }
@@ -101,7 +106,9 @@ impl<T: ICommandInfo + 'static> FromServices for CliProgress<T> {
     type Error = ResolveError;
 
     fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
-        Ok(Self::new(services.get::<CommandMediator<T>>()?))
+        let mediator = services.get::<CommandMediator<T>>()?;
+        let factory = services.get::<ProgressWriterFactory>()?;
+        Ok(Self::new(mediator, factory.multi()))
     }
 }
 
@@ -136,6 +143,49 @@ mod tests {
         runner.start(WORKER_COUNT).await;
         for i in 1..=COMMAND_COUNT {
             let request = DelayRequest::new(format!("P{i}"), DELAY_MS);
+            runner
+                .queue_request(request)
+                .await
+                .expect("should be able to queue request");
+        }
+        runner.drain().await;
+        progress.finish().await;
+
+        // Assert
+        assert_eq!(
+            progress.length(),
+            Some(COMMAND_COUNT as u64),
+            "progress bar total should match queued commands"
+        );
+        assert_eq!(
+            progress.position(),
+            COMMAND_COUNT as u64,
+            "progress bar position should match completed commands"
+        );
+    }
+
+    /// Direct construction attaches the bar to a shared [`MultiProgress`] and still receives events.
+    #[tokio::test]
+    async fn cli_progress_new_receives_all_events() {
+        // Arrange
+        use indicatif::ProgressDrawTarget;
+        let multi = MultiProgress::with_draw_target(ProgressDrawTarget::hidden());
+        let services = ServiceBuilder::new().with_commands().build();
+        let mediator = services
+            .get::<CommandMediator<CommandInfo>>()
+            .expect("should be able to get mediator");
+        let runner = services
+            .get_async::<CommandRunner<CommandInfo>>()
+            .await
+            .expect("should be able to get runner");
+        let progress = CliProgress::new(mediator, multi);
+        let _logger = init_test_logger();
+
+        // Act
+        progress.start().await;
+        runner.start(WORKER_COUNT).await;
+        for i in 1..=COMMAND_COUNT {
+            let request = DelayRequest::new(format!("M{i}"), DELAY_MS);
             runner
                 .queue_request(request)
                 .await

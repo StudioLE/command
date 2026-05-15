@@ -6,6 +6,8 @@ mod command_progress;
 mod command_registry;
 mod command_runner;
 mod command_status;
+mod progress_writer;
+mod progress_writer_factory;
 mod worker;
 mod worker_pool;
 
@@ -16,5 +18,7 @@ pub use command_progress::*;
 pub use command_registry::*;
 pub use command_runner::*;
 pub use command_status::*;
+pub use progress_writer::*;
+pub use progress_writer_factory::*;
 pub use worker::*;
 pub use worker_pool::*;

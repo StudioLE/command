@@ -98,6 +98,7 @@ macro_rules! define_commands_server {
                     .with_type::<CommandMediator<CommandInfo>>()
                     .with_type::<WorkerPool<CommandInfo>>()
                     .with_type::<CommandEvents<CommandInfo>>()
+                    .with_type::<ProgressWriterFactory>()
                     .with_type::<CliProgress<CommandInfo>>()
             }
         }
