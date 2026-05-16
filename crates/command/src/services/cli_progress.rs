@@ -127,7 +127,8 @@ mod tests {
     #[tokio::test]
     async fn cli_progress_receives_all_events() {
         // Arrange
-        let services = ServiceBuilder::new().with_commands().build();
+        let services = ServiceBuilder::new().with_test_services().build();
+        let _ = services.init();
         let runner = services
             .get_async::<CommandRunner<CommandInfo>>()
             .await
@@ -135,7 +136,6 @@ mod tests {
         let progress = services
             .get::<CliProgress<CommandInfo>>()
             .expect("should be able to get progress");
-        let _logger = init_test_logger();
         progress.hide();
 
         // Act
@@ -170,7 +170,8 @@ mod tests {
         // Arrange
         use indicatif::ProgressDrawTarget;
         let multi = MultiProgress::with_draw_target(ProgressDrawTarget::hidden());
-        let services = ServiceBuilder::new().with_commands().build();
+        let services = ServiceBuilder::new().with_test_services().build();
+        let _ = services.init();
         let mediator = services
             .get::<CommandMediator<CommandInfo>>()
             .expect("should be able to get mediator");
@@ -179,7 +180,6 @@ mod tests {
             .await
             .expect("should be able to get runner");
         let progress = CliProgress::new(mediator, multi);
-        let _logger = init_test_logger();
 
         // Act
         progress.start().await;

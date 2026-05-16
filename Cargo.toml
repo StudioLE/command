@@ -17,6 +17,7 @@ indicatif = { version = "0.18.4" }
 insta = { version = "1.47.2" }
 serde = { version = "1.0.228", features = ["derive"] }
 studiole-di = { version = "0.5.1" }
+studiole-logging = { version = "0.*" }
 studiole-report = { version = "0.*" }
 thiserror = { version = "2.0.18"}
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }

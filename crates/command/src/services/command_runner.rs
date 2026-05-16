@@ -224,7 +224,8 @@ mod tests {
     #[tokio::test]
     async fn command_runner() {
         // Arrange
-        let services = ServiceBuilder::new().with_commands().build();
+        let services = ServiceBuilder::new().with_test_services().build();
+        let _ = services.init();
         let runner = services
             .get_async::<CommandRunner<CommandInfo>>()
             .await
@@ -233,7 +234,6 @@ mod tests {
             .get::<CommandEvents<CommandInfo>>()
             .expect("should be able to get events");
         events.start().await;
-        let _logger = init_test_logger();
 
         // Act
         runner.start(WORKER_COUNT).await;
