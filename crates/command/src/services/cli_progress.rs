@@ -127,15 +127,12 @@ mod tests {
     #[tokio::test]
     async fn cli_progress_receives_all_events() {
         // Arrange
-        let services = ServiceBuilder::new().with_test_services().build();
-        let _ = services.init();
-        let runner = services
-            .get_async::<CommandRunner<CommandInfo>>()
-            .await
-            .expect("should be able to get runner");
-        let progress = services
-            .get::<CliProgress<CommandInfo>>()
-            .expect("should be able to get progress");
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .build()
+            .expect_init();
+        let runner = services.expect_async::<CommandRunner<CommandInfo>>().await;
+        let progress = services.expect::<CliProgress<CommandInfo>>();
         progress.hide();
 
         // Act
@@ -170,15 +167,12 @@ mod tests {
         // Arrange
         use indicatif::ProgressDrawTarget;
         let multi = MultiProgress::with_draw_target(ProgressDrawTarget::hidden());
-        let services = ServiceBuilder::new().with_test_services().build();
-        let _ = services.init();
-        let mediator = services
-            .get::<CommandMediator<CommandInfo>>()
-            .expect("should be able to get mediator");
-        let runner = services
-            .get_async::<CommandRunner<CommandInfo>>()
-            .await
-            .expect("should be able to get runner");
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .build()
+            .expect_init();
+        let mediator = services.expect::<CommandMediator<CommandInfo>>();
+        let runner = services.expect_async::<CommandRunner<CommandInfo>>().await;
         let progress = CliProgress::new(mediator, multi);
 
         // Act

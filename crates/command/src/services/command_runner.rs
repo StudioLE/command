@@ -224,15 +224,12 @@ mod tests {
     #[tokio::test]
     async fn command_runner() {
         // Arrange
-        let services = ServiceBuilder::new().with_test_services().build();
-        let _ = services.init();
-        let runner = services
-            .get_async::<CommandRunner<CommandInfo>>()
-            .await
-            .expect("should be able to get runner");
-        let events = services
-            .get::<CommandEvents<CommandInfo>>()
-            .expect("should be able to get events");
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .build()
+            .expect_init();
+        let runner = services.expect_async::<CommandRunner<CommandInfo>>().await;
+        let events = services.expect::<CommandEvents<CommandInfo>>();
         events.start().await;
 
         // Act

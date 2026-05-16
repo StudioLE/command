@@ -32,8 +32,10 @@ fn command_display() {
 #[tokio::test]
 async fn command_execute() {
     // Arrange
-    let services = ServiceBuilder::new().with_test_services().build();
-    let _ = services.init();
+    let _services = ServiceBuilder::new()
+        .with_test_services()
+        .build()
+        .expect_init();
     let request = DelayRequest::default();
     let handler = Arc::new(DelayHandler);
     let command = Command::Delay(request, handler);
@@ -48,12 +50,11 @@ async fn command_execute() {
 #[tokio::test]
 async fn take_completed() {
     // Arrange
-    let services = ServiceBuilder::new().with_test_services().build();
-    let _ = services.init();
-    let runner = services
-        .get_async::<CommandRunner<CommandInfo>>()
-        .await
-        .expect("should be able to get runner");
+    let services = ServiceBuilder::new()
+        .with_test_services()
+        .build()
+        .expect_init();
+    let runner = services.expect_async::<CommandRunner<CommandInfo>>().await;
     runner
         .queue_request(DelayRequest::new("A".to_owned(), 10))
         .await
