@@ -193,17 +193,16 @@ mod expand_macros {
     };
     #[automatically_derived]
     impl ::core::cmp::Eq for CommandRequest {
-        #[inline]
         #[doc(hidden)]
         #[coverage(off)]
-        fn assert_receiver_is_total_eq(&self) -> () {
+        fn assert_fields_are_eq(&self) {
             let _: ::core::cmp::AssertParamIsEq<DelayRequest>;
         }
     }
     #[automatically_derived]
     impl ::core::hash::Hash for CommandRequest {
         #[inline]
-        fn hash<__H: ::core::hash::Hasher>(&self, state: &mut __H) -> () {
+        fn hash<__H: ::core::hash::Hasher>(&self, state: &mut __H) {
             match self {
                 CommandRequest::Delay(__self_0) => {
                     ::core::hash::Hash::hash(__self_0, state)
