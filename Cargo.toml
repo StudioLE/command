@@ -22,8 +22,7 @@ studiole-report = { version = "0.*" }
 thiserror = { version = "2.0.18"}
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
 tracing = { version = "0.1.44" }
-# v0.3.20 breaks ANSI colors in the terminal
-tracing-subscriber = { version = "=0.3.19" }
+tracing-subscriber = { version = "0.3.23" }
 
 [workspace.lints.rust]
 deprecated = "allow"
