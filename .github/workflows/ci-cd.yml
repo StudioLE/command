@@ -11,7 +11,7 @@ jobs:
 
   ci-cd:
     name: CI/CD
-    uses: StudioLE/Actions/.github/workflows/ci-cd-crates.yml@v7
+    uses: StudioLE/Actions/.github/workflows/ci-cd-crates.yml@v8
     with:
       run_before_test: |
         /home/linuxbrew/.linuxbrew/bin/brew install cargo-expand
